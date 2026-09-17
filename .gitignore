@@ -1,0 +1,19 @@
+# RStudio
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# Raw / downloaded data
+data/
+
+# Large or temporary R objects
+*.rds
+*.RData
+
+# Archives
+*.tar.gz
+*.zip
+
+# macOS
+.DS_Store
