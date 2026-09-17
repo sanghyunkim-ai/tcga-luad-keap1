@@ -224,3 +224,20 @@ tcga-luad-keap1/
 - 따라서 **인과관계(causality)** 를 직접 증명하는 것은 아닙니다.
 - Survival cutoff는 동일 cohort에서 최적화되었기 때문에, 독립 cohort validation이 필요합니다.
 - PI3K pathway gene-level comparison은 **exploratory analysis**로 해석해야 합니다.
+
+---
+
+## 추가 분석: Genome-wide Transcriptomic Analysis
+
+특정 유전자나 pathway를 사전에 선택하지 않고  
+**KEAP1 MUT vs WT의 genome-wide transcriptomic difference**를 추가로 분석했습니다.
+
+주요 분석:
+
+- DESeq2 genome-wide DEG
+- GO Biological Process
+- KEGG pathway enrichment
+- Hallmark GSEA
+- Sex / pathologic stage / smoking-adjusted sensitivity analysis
+
+➡️ **[Genome-wide 분석 상세 결과 보기](GENOME_WIDE_ANALYSIS.md)**
