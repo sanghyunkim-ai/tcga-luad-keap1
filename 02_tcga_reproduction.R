@@ -2865,7 +2865,7 @@ pheatmap(
   fontsize = 10,
   fontsize_row = 10,
   main = "PI3K-AKT-mTOR pathway expression in TCGA-LUAD"
-  
+)
   
   # ============================================================
   # 75. 105 PI3K genes: KEAP1 WT vs MUT gene-wise test
@@ -3089,3 +3089,2684 @@ pheatmap(
     
     main = "Differentially expressed PI3K-AKT-mTOR pathway genes"
   )
+  
+  # ============================================================
+  # 지금까지 만든 Figure 전체 저장
+  # ============================================================
+  
+  dir.create("figures", showWarnings = FALSE)
+  library(ggplot2)
+  
+  master_cohort$KEAP1_status <- factor(
+    master_cohort$KEAP1_status,
+    levels = c("WT", "MUT")
+  )
+  
+  p_mir_expression <- ggplot(
+    master_cohort,
+    aes(
+      x = KEAP1_status,
+      y = miR130b_5p_log2norm,
+      fill = KEAP1_status
+    )
+  ) +
+    geom_violin(trim = FALSE, alpha = 0.7) +
+    geom_boxplot(
+      width = 0.15,
+      outlier.shape = NA
+    ) +
+    geom_jitter(
+      width = 0.08,
+      alpha = 0.35,
+      size = 1
+    ) +
+    scale_fill_manual(
+      values = c(
+        "WT" = "#00BFC4",
+        "MUT" = "#F28E2B"
+      )
+    ) +
+    annotate(
+      "text",
+      x = 1.5,
+      y = max(master_cohort$miR130b_5p_log2norm) * 0.98,
+      label = "p = 0.0153",
+      size = 5
+    ) +
+    labs(
+      x = "KEAP1 status",
+      y = "miR-130b-5p (log2 normalized count + 1)",
+      title = "miR-130b-5p expression by KEAP1 status"
+    ) +
+    theme_bw() +
+    theme(
+      legend.position = "none"
+    )
+  
+  ggsave(
+    "figures/01_miR130b_KEAP1_expression.png",
+    p_mir_expression,
+    width = 6,
+    height = 5,
+    dpi = 300
+  )
+  library(survival)
+  library(survminer)
+  
+  mir_mut_cat <- surv_categorize(
+    cut_mir_master
+  )
+  
+  mir_mut_cat$miR_group <- factor(
+    mir_mut_cat$miR130b_5p_log2norm,
+    levels = c("low", "high"),
+    labels = c("Low", "High")
+  )
+  
+  fit_mir_mut <- survfit(
+    Surv(OS_days, OS_event) ~ miR_group,
+    data = mir_mut_cat
+  )
+  
+  km_mir_mut <- ggsurvplot(
+    fit_mir_mut,
+    data = mir_mut_cat,
+    risk.table = TRUE,
+    pval = TRUE,
+    conf.int = FALSE,
+    censor = TRUE,
+    palette = c(
+      "Low" = "#00A6D6",
+      "High" = "#E84A5F"
+    ),
+    xlab = "Days",
+    ylab = "Survival probability",
+    legend.title = "miR-130b-5p",
+    legend.labs = c("Low", "High"),
+    title = "miR-130b-5p in KEAP1 MUT",
+    risk.table.height = 0.25,
+    ggtheme = theme_bw()
+  )
+  
+  png(
+    "figures/02_miR130b_survival_KEAP1_MUT.png",
+    width = 1800,
+    height = 1500,
+    res = 200
+  )
+  
+  print(km_mir_mut)
+  
+  dev.off()
+  
+  km_pik3cb_wt <- ggsurvplot(
+    fit_pik3cb_wt,
+    data = pik3cb_wt_cat,
+    risk.table = TRUE,
+    pval = TRUE,
+    conf.int = FALSE,
+    censor = TRUE,
+    palette = c(
+      "Low" = "#00A6D6",
+      "High" = "#E84A5F"
+    ),
+    xlab = "Days",
+    ylab = "Survival probability",
+    legend.title = "PIK3CB",
+    legend.labs = c("Low", "High"),
+    title = "PIK3CB in KEAP1 WT",
+    risk.table.height = 0.25,
+    ggtheme = theme_bw()
+  )
+  
+  png(
+    "figures/03_PIK3CB_survival_KEAP1_WT.png",
+    width = 1800,
+    height = 1500,
+    res = 200
+  )
+  
+  print(km_pik3cb_wt)
+  
+  dev.off()
+  
+  
+  km_pik3cb_mut <- ggsurvplot(
+    fit_pik3cb_mut,
+    data = pik3cb_mut_cat,
+    risk.table = TRUE,
+    pval = TRUE,
+    conf.int = FALSE,
+    censor = TRUE,
+    palette = c(
+      "Low" = "#00A6D6",
+      "High" = "#E84A5F"
+    ),
+    xlab = "Days",
+    ylab = "Survival probability",
+    legend.title = "PIK3CB",
+    legend.labs = c("Low", "High"),
+    title = "PIK3CB in KEAP1 MUT",
+    risk.table.height = 0.25,
+    ggtheme = theme_bw()
+  )
+  
+  png(
+    "figures/04_PIK3CB_survival_KEAP1_MUT.png",
+    width = 1800,
+    height = 1500,
+    res = 200
+  )
+  
+  print(km_pik3cb_mut)
+  
+  dev.off()
+  
+  
+  km_composite <- ggsurvplot(
+    fit_composite,
+    data = composite_cat,
+    risk.table = TRUE,
+    pval = TRUE,
+    conf.int = FALSE,
+    censor = TRUE,
+    palette = c(
+      "Low risk" = "#00A6D6",
+      "High risk" = "#E84A5F"
+    ),
+    xlab = "Days",
+    ylab = "Survival probability",
+    legend.title = "Composite risk",
+    legend.labs = c(
+      "Low risk",
+      "High risk"
+    ),
+    title = "PIK3CB / miR-130b-5p composite risk in KEAP1 WT + RT",
+    risk.table.height = 0.25,
+    ggtheme = theme_bw()
+  )
+  
+  png(
+    "figures/05_composite_risk_KEAP1_WT_RT.png",
+    width = 1800,
+    height = 1500,
+    res = 200
+  )
+  
+  print(km_composite)
+  
+  dev.off()
+  
+  
+  ggsave(
+    "figures/06_PIK3CB_PI3K_ssGSEA_WT_MUT.png",
+    p_pi3k_final,
+    width = 10,
+    height = 5,
+    dpi = 300
+  )
+  
+  
+  library(pheatmap)
+  
+  png(
+    "figures/07_PI3K_heatmap_105_genes.png",
+    width = 2600,
+    height = 2200,
+    res = 200
+  )
+  
+  pheatmap(
+    expr_heatmap_z,
+    cluster_rows = TRUE,
+    cluster_cols = FALSE,
+    show_colnames = FALSE,
+    show_rownames = TRUE,
+    annotation_col = annotation_col_final,
+    annotation_colors = annotation_colors_final,
+    gaps_col = wt_end,
+    color = colorRampPalette(
+      c("#2166AC", "white", "#B2182B")
+    )(100),
+    breaks = seq(-2, 2, length.out = 101),
+    border_color = NA,
+    fontsize_row = 6,
+    main = "PI3K-AKT-mTOR pathway genes in TCGA-LUAD"
+  )
+  
+  dev.off()
+  
+  
+  png(
+    "figures/08_PI3K_heatmap_top25_variable.png",
+    width = 2600,
+    height = 1800,
+    res = 200
+  )
+  
+  pheatmap(
+    expr_heatmap_top25,
+    cluster_rows = TRUE,
+    cluster_cols = FALSE,
+    gaps_col = wt_end,
+    show_colnames = FALSE,
+    show_rownames = TRUE,
+    annotation_col = annotation_col_final,
+    annotation_colors = annotation_colors_final,
+    color = colorRampPalette(
+      c("#2166AC", "white", "#B2182B")
+    )(100),
+    breaks = seq(-2, 2, length.out = 101),
+    border_color = NA,
+    fontsize_row = 10,
+    main = "Top variable PI3K-AKT-mTOR pathway genes"
+  )
+  
+  dev.off()
+  
+  
+  
+  png(
+    "figures/09_PI3K_heatmap_54_significant_genes.png",
+    width = 2800,
+    height = 2200,
+    res = 200
+  )
+  
+  pheatmap(
+    expr_heatmap_sig_ordered,
+    cluster_rows = FALSE,
+    cluster_cols = FALSE,
+    gaps_col = wt_end,
+    show_colnames = FALSE,
+    show_rownames = TRUE,
+    annotation_col = annotation_col_final,
+    annotation_row = annotation_row_sig,
+    annotation_colors = annotation_colors_sig,
+    color = colorRampPalette(
+      c("#2166AC", "white", "#B2182B")
+    )(100),
+    breaks = seq(-2, 2, length.out = 101),
+    border_color = NA,
+    fontsize_row = 7,
+    main = "Significant PI3K-AKT-mTOR pathway genes"
+  )
+  
+  dev.off()
+  
+  list.files(
+    "figures",
+    full.names = TRUE
+  )
+  
+  
+  # ============================================================
+  # 09. 유의한 54개 PI3K pathway gene heatmap 저장
+  # ============================================================
+  
+  png(
+    "figures/09_PI3K_heatmap_54_significant_genes.png",
+    width = 2800,
+    height = 2200,
+    res = 200
+  )
+  
+  pheatmap(
+    expr_heatmap_sig_ordered,
+    cluster_rows = FALSE,
+    cluster_cols = FALSE,
+    gaps_col = wt_end,
+    show_colnames = FALSE,
+    show_rownames = TRUE,
+    annotation_col = annotation_col_final,
+    annotation_row = annotation_row_sig,
+    annotation_colors = annotation_colors_sig,
+    color = colorRampPalette(
+      c("#2166AC", "white", "#B2182B")
+    )(100),
+    breaks = seq(-2, 2, length.out = 101),
+    border_color = NA,
+    fontsize_row = 7,
+    main = "Significant PI3K-AKT-mTOR pathway genes"
+  )
+  
+  dev.off()
+  
+  
+  
+  list.files("figures")
+  
+  
+  # ============================================================
+  # 80. Genome-wide DEG 분석 시작
+  # 필요한 객체 확인
+  # ============================================================
+  
+  getwd()
+  
+  exists("rna_luad")
+  exists("keap1_status")
+  
+  dim(rna_luad)
+  table(keap1_status$KEAP1_status)
+  
+  
+  # RNA-seq sample metadata 확인
+  colnames(colData(rna_luad))
+  
+  # sample type 확인
+  table(colData(rna_luad)$sample_type, useNA = "ifany")
+  
+  # 사용 가능한 expression assay 확인
+  assayNames(rna_luad)
+  
+  
+  # ============================================================
+  # 81. Primary Tumor 환자 중복 확인
+  # ============================================================
+  
+  rna_meta <- as.data.frame(colData(rna_luad))
+  
+  primary_meta <- rna_meta[
+    rna_meta$sample_type == "Primary Tumor",
+    c(
+      "barcode",
+      "patient",
+      "sample",
+      "sample_submitter_id",
+      "sample_type"
+    )
+  ]
+  
+  # Primary Tumor sample 수
+  nrow(primary_meta)
+  
+  # Primary Tumor 환자 수
+  length(unique(primary_meta$patient))
+  
+  # 환자당 sample 개수 분포
+  table(table(primary_meta$patient))
+  
+  # 2개 이상의 Primary Tumor sample을 가진 환자
+  dup_patients <- names(
+    which(table(primary_meta$patient) > 1)
+  )
+  
+  length(dup_patients)
+  
+  # 중복 환자의 실제 sample 정보
+  primary_meta[
+    primary_meta$patient %in% dup_patients,
+  ][order(
+    primary_meta[
+      primary_meta$patient %in% dup_patients,
+      "patient"
+    ]
+  ), ]
+  
+  # ============================================================
+  # 82. 중복 Primary Tumor sample의 library size 확인
+  # ============================================================
+  
+  # Primary Tumor 열 위치
+  primary_idx <- which(
+    colData(rna_luad)$sample_type == "Primary Tumor"
+  )
+  
+  # raw count
+  primary_counts <- assay(
+    rna_luad,
+    "unstranded"
+  )[, primary_idx]
+  
+  # metadata 순서 확인
+  primary_meta2 <- as.data.frame(
+    colData(rna_luad)[primary_idx, ]
+  )
+  
+  # 각 sample의 전체 sequencing count
+  primary_meta2$library_size <- colSums(primary_counts)
+  
+  # 보기 편하게 million 단위
+  primary_meta2$library_M <- primary_meta2$library_size / 1e6
+  
+  # 중복 환자만 확인
+  dup_qc <- primary_meta2[
+    primary_meta2$patient %in% dup_patients,
+    c(
+      "patient",
+      "sample",
+      "barcode",
+      "library_M"
+    )
+  ]
+  
+  dup_qc <- dup_qc[
+    order(dup_qc$patient, -dup_qc$library_M),
+  ]
+  
+  dup_qc
+  
+  
+  
+  # ============================================================
+  # 83. 환자당 Primary Tumor 1개 선택
+  # 규칙:
+  # 1) 01A 우선
+  # 2) 같은 vial이면 library size가 큰 sample 우선
+  # ============================================================
+  
+  primary_meta2$vial_priority <- ifelse(
+    grepl("-01A$", primary_meta2$sample), 1,
+    ifelse(
+      grepl("-01B$", primary_meta2$sample), 2,
+      ifelse(grepl("-01C$", primary_meta2$sample), 3, 9)
+    )
+  )
+  
+  # 환자 → vial 우선순위 → library size 순으로 정렬
+  primary_meta2 <- primary_meta2[
+    order(
+      primary_meta2$patient,
+      primary_meta2$vial_priority,
+      -primary_meta2$library_size
+    ),
+  ]
+  
+  # 환자당 첫 번째 sample만 선택
+  primary_unique <- primary_meta2[
+    !duplicated(primary_meta2$patient),
+  ]
+  
+  # 확인
+  nrow(primary_unique)
+  length(unique(primary_unique$patient))
+  table(primary_unique$vial_priority)
+  
+  # 중복 환자 12명에서 최종 선택된 sample 확인
+  primary_unique[
+    primary_unique$patient %in% dup_patients,
+    c("patient", "sample", "barcode", "library_M")
+  ]
+  
+  
+  # ============================================================
+  # 84. Primary Tumor cohort에 KEAP1 mutation status 매칭
+  # ============================================================
+  
+  # KEAP1 status 데이터 구조 확인
+  colnames(keap1_status)
+  head(keap1_status)
+  
+  
+  # ============================================================
+  # 85. KEAP1 status 매칭 및 최종 DEG cohort 확인
+  # ============================================================
+  
+  primary_unique$KEAP1_status <- keap1_status$KEAP1_status[
+    match(
+      primary_unique$patient,
+      keap1_status$patient_id
+    )
+  ]
+  
+  # 517명 중 KEAP1 상태 매칭 결과
+  table(primary_unique$KEAP1_status, useNA = "ifany")
+  
+  # mutation profiling 정보가 없는 환자 수
+  sum(is.na(primary_unique$KEAP1_status))
+  
+  # 최종 DEG cohort
+  deg_meta <- primary_unique[
+    !is.na(primary_unique$KEAP1_status),
+  ]
+  
+  # 확인
+  nrow(deg_meta)
+  length(unique(deg_meta$patient))
+  table(deg_meta$KEAP1_status)
+  
+  # ============================================================
+  # 86. 최종 507명 genome-wide raw count matrix 생성
+  # ============================================================
+  
+  # rna_luad에서 최종 환자들의 sample 위치 찾기
+  deg_idx <- match(
+    deg_meta$barcode,
+    colnames(rna_luad)
+  )
+  
+  # 매칭 실패가 있는지 확인
+  sum(is.na(deg_idx))
+  
+  # raw count matrix 추출
+  deg_counts <- assay(
+    rna_luad,
+    "unstranded"
+  )[, deg_idx]
+  
+  # sample 이름을 barcode로 유지
+  colnames(deg_counts) <- deg_meta$barcode
+  
+  # 확인
+  dim(deg_counts)
+  
+  # metadata와 count matrix 순서가 정확히 같은지 확인
+  all(colnames(deg_counts) == deg_meta$barcode)
+  
+  # 그룹 확인
+  table(deg_meta$KEAP1_status)
+  
+  
+  # ============================================================
+  # 87. Low-count gene filtering
+  # 기준: count >= 10인 sample이 최소 10개 이상
+  # ============================================================
+  
+  keep_gene <- rowSums(deg_counts >= 10) >= 10
+  
+  # filtering 전/후 gene 수
+  c(
+    before = nrow(deg_counts),
+    after  = sum(keep_gene),
+    removed = sum(!keep_gene)
+  )
+  
+  # filtering
+  deg_counts_filt <- deg_counts[keep_gene, ]
+  
+  # 최종 크기 확인
+  dim(deg_counts_filt)
+  
+  # count matrix 기본 확인
+  summary(rowSums(deg_counts_filt))
+  
+  
+  
+  # ============================================================
+  # 88. DESeq2 객체 생성 + VST 준비
+  # ============================================================
+  
+  library(DESeq2)
+  
+  # WT를 기준(reference)으로 설정
+  deg_meta$KEAP1_status <- factor(
+    deg_meta$KEAP1_status,
+    levels = c("WT", "MUT")
+  )
+  
+  # DESeq2용 metadata
+  deg_coldata <- data.frame(
+    KEAP1_status = deg_meta$KEAP1_status,
+    row.names = deg_meta$barcode
+  )
+  
+  # 순서가 정확히 맞는지 확인
+  all(colnames(deg_counts_filt) == rownames(deg_coldata))
+  
+  # DESeq2 객체 생성
+  dds_deg <- DESeqDataSetFromMatrix(
+    countData = round(deg_counts_filt),
+    colData = deg_coldata,
+    design = ~ KEAP1_status
+  )
+  
+  # normalization
+  dds_deg <- estimateSizeFactors(dds_deg)
+  
+  # PCA용 variance stabilizing transformation
+  vsd_deg <- vst(
+    dds_deg,
+    blind = TRUE
+  )
+  
+  # 확인
+  dim(dds_deg)
+  dim(vsd_deg)
+  
+  summary(sizeFactors(dds_deg))
+  
+  table(colData(dds_deg)$KEAP1_status)
+  
+  
+  # ============================================================
+  # 89. PCA QC - KEAP1 WT vs MUT
+  # ============================================================
+  
+  library(ggplot2)
+  
+  # PCA 데이터 추출
+  pca_data <- plotPCA(
+    vsd_deg,
+    intgroup = "KEAP1_status",
+    returnData = TRUE
+  )
+  
+  # 각 PC가 설명하는 분산 비율
+  percent_var <- round(
+    100 * attr(pca_data, "percentVar"),
+    1
+  )
+  
+  # 확인
+  head(pca_data)
+  
+  percent_var
+  
+  # PCA plot
+  p_pca <- ggplot(
+    pca_data,
+    aes(
+      x = PC1,
+      y = PC2,
+      color = KEAP1_status
+    )
+  ) +
+    geom_point(
+      size = 2,
+      alpha = 0.7
+    ) +
+    xlab(
+      paste0("PC1: ", percent_var[1], "% variance")
+    ) +
+    ylab(
+      paste0("PC2: ", percent_var[2], "% variance")
+    ) +
+    ggtitle(
+      "TCGA-LUAD RNA-seq PCA: KEAP1 WT vs MUT"
+    ) +
+    theme_classic(base_size = 13)
+  
+  p_pca
+  
+  print(p_pca)
+  ggsave(
+    "figures/10_DEG_PCA_KEAP1_WT_MUT.png",
+    plot = p_pca,
+    width = 7,
+    height = 5.5,
+    dpi = 300
+  )
+  
+  
+  # ============================================================
+  # 90. Genome-wide DESeq2: KEAP1 MUT vs WT
+  # ============================================================
+  
+  # DESeq2 모델 fitting
+  dds_deg <- DESeq(dds_deg)
+  
+  # MUT vs WT 결과
+  # log2FoldChange > 0 : MUT에서 높음
+  # log2FoldChange < 0 : MUT에서 낮음
+  res_deg <- results(
+    dds_deg,
+    contrast = c("KEAP1_status", "MUT", "WT"),
+    alpha = 0.05
+  )
+  
+  # 기본 결과 확인
+  summary(res_deg)
+  
+  # data.frame으로 변환
+  res_deg_df <- as.data.frame(res_deg)
+  
+  # 전체 gene 수
+  nrow(res_deg_df)
+  
+  # FDR < 0.05
+  sum(res_deg_df$padj < 0.05, na.rm = TRUE)
+  
+  # FDR < 0.05 + |log2FC| >= 1
+  sum(
+    res_deg_df$padj < 0.05 &
+      abs(res_deg_df$log2FoldChange) >= 1,
+    na.rm = TRUE
+  )
+  
+  
+  # ============================================================
+  # 91. RNA-seq gene annotation 구조 확인
+  # ============================================================
+  
+  colnames(rowData(rna_luad))
+  
+  head(
+    as.data.frame(rowData(rna_luad))
+  )
+  
+  
+  # ============================================================
+  # 92. DEG 결과에 gene annotation 추가
+  # ============================================================
+  
+  # Ensembl ID 저장
+  res_deg_df$gene_id <- rownames(res_deg_df)
+  
+  # RNA annotation
+  gene_anno <- as.data.frame(rowData(rna_luad))[
+    ,
+    c("gene_id", "gene_name", "gene_type")
+  ]
+  
+  # DEG 결과와 annotation 매칭
+  anno_idx <- match(
+    res_deg_df$gene_id,
+    gene_anno$gene_id
+  )
+  
+  res_deg_df$gene_name <- gene_anno$gene_name[anno_idx]
+  res_deg_df$gene_type <- gene_anno$gene_type[anno_idx]
+  
+  # annotation 확인
+  head(
+    res_deg_df[
+      ,
+      c(
+        "gene_id",
+        "gene_name",
+        "gene_type",
+        "baseMean",
+        "log2FoldChange",
+        "pvalue",
+        "padj"
+      )
+    ]
+  )
+  
+  # gene symbol 매칭 실패 확인
+  sum(is.na(res_deg_df$gene_name))
+  
+  
+  # ============================================================
+  # 93. Significant DEG 정의
+  # 기준: padj < 0.05 & |log2FC| >= 1
+  # ============================================================
+  
+  sig_deg <- res_deg_df[
+    !is.na(res_deg_df$padj) &
+      res_deg_df$padj < 0.05 &
+      abs(res_deg_df$log2FoldChange) >= 1,
+  ]
+  
+  sig_deg$direction <- ifelse(
+    sig_deg$log2FoldChange > 0,
+    "Up_in_MUT",
+    "Down_in_MUT"
+  )
+  
+  # 전체 / 방향별 개수
+  nrow(sig_deg)
+  table(sig_deg$direction)
+  
+  
+  
+  # MUT에서 증가한 유전자 Top 20
+  top_up <- sig_deg[
+    order(-sig_deg$log2FoldChange),
+  ]
+  
+  head(
+    top_up[
+      ,
+      c(
+        "gene_name",
+        "gene_type",
+        "baseMean",
+        "log2FoldChange",
+        "padj"
+      )
+    ],
+    20
+  )
+  
+  # MUT에서 감소한 유전자 Top 20
+  top_down <- sig_deg[
+    order(sig_deg$log2FoldChange),
+  ]
+  
+  head(
+    top_down[
+      ,
+      c(
+        "gene_name",
+        "gene_type",
+        "baseMean",
+        "log2FoldChange",
+        "padj"
+      )
+    ],
+    20
+  )
+  
+  
+  # ============================================================
+  # 94. MA plot
+  # ============================================================
+  
+  png(
+    "figures/11_DEG_MA_KEAP1_WT_MUT.png",
+    width = 1800,
+    height = 1500,
+    res = 250
+  )
+  
+  plotMA(
+    res_deg,
+    alpha = 0.05,
+    ylim = c(-6, 6),
+    main = "KEAP1 MUT vs WT - MA plot"
+  )
+  
+  dev.off()
+  
+  # RStudio 화면에도 표시
+  plotMA(
+    res_deg,
+    alpha = 0.05,
+    ylim = c(-6, 6),
+    main = "KEAP1 MUT vs WT - MA plot"
+  )
+  
+  plotMA(
+    res_deg,
+    alpha = 0.05,
+    ylim = c(-6, 6),
+    main = "KEAP1 MUT vs WT - MA plot"
+  )
+
+  graphics.off()
+  
+  plotMA(
+    res_deg,
+    alpha = 0.05,
+    ylim = c(-6, 6),
+    main = "KEAP1 MUT vs WT - MA plot"
+  )
+  
+  
+  # ============================================================
+  # 95. Volcano plot
+  # padj < 0.05 & |log2FC| >= 1
+  # ============================================================
+  
+  volcano_df <- res_deg_df[
+    !is.na(res_deg_df$padj) &
+      !is.na(res_deg_df$log2FoldChange),
+  ]
+  
+  # -log10(FDR)
+  volcano_df$neglog10_padj <- -log10(
+    pmax(volcano_df$padj, .Machine$double.xmin)
+  )
+  
+  # DEG 분류
+  volcano_df$DEG <- "Not significant"
+  
+  volcano_df$DEG[
+    volcano_df$padj < 0.05 &
+      volcano_df$log2FoldChange >= 1
+  ] <- "Up in MUT"
+  
+  volcano_df$DEG[
+    volcano_df$padj < 0.05 &
+      volcano_df$log2FoldChange <= -1
+  ] <- "Down in MUT"
+  
+  # 개수 확인
+  table(volcano_df$DEG)
+  
+  dev.cur()
+  
+  
+  graphics.off()
+  
+  
+  library(ggplot2)
+  
+  print(p_volcano)
+  
+  
+  # Volcano plot용 데이터 만들기
+  volcano_df <- res_deg_df[
+    !is.na(res_deg_df$padj) &
+      !is.na(res_deg_df$log2FoldChange),
+  ]
+  
+  volcano_df$neglog10_padj <- -log10(
+    pmax(volcano_df$padj, .Machine$double.xmin)
+  )
+  
+  volcano_df$DEG <- "Not significant"
+  
+  volcano_df$DEG[
+    volcano_df$padj < 0.05 &
+      volcano_df$log2FoldChange >= 1
+  ] <- "Up in MUT"
+  
+  volcano_df$DEG[
+    volcano_df$padj < 0.05 &
+      volcano_df$log2FoldChange <= -1
+  ] <- "Down in MUT"
+  
+  # 개수 확인
+  table(volcano_df$DEG)
+  
+  
+  library(ggplot2)
+  
+  p_volcano <- ggplot(
+    volcano_df,
+    aes(
+      x = log2FoldChange,
+      y = neglog10_padj,
+      color = DEG
+    )
+  ) +
+    geom_point(
+      alpha = 0.5,
+      size = 1.3
+    ) +
+    geom_vline(
+      xintercept = c(-1, 1),
+      linetype = "dashed"
+    ) +
+    geom_hline(
+      yintercept = -log10(0.05),
+      linetype = "dashed"
+    ) +
+    xlab("log2 Fold Change (MUT vs WT)") +
+    ylab("-log10 adjusted p-value") +
+    ggtitle("KEAP1 MUT vs WT - Volcano plot") +
+    theme_classic(base_size = 13)
+  
+  
+  # label을 더 정확하게 수정
+  volcano_df$DEG <- "Other"
+  
+  volcano_df$DEG[
+    volcano_df$padj < 0.05 &
+      volcano_df$log2FoldChange >= 1
+  ] <- "Up in MUT"
+  
+  volcano_df$DEG[
+    volcano_df$padj < 0.05 &
+      volcano_df$log2FoldChange <= -1
+  ] <- "Down in MUT"
+  
+  table(volcano_df$DEG)
+  
+  p_volcano <- ggplot(
+    volcano_df,
+    aes(
+      x = log2FoldChange,
+      y = neglog10_padj,
+      color = DEG
+    )
+  ) +
+    geom_point(alpha = 0.5, size = 1.3) +
+    geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
+    geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+    xlab("log2 Fold Change (MUT vs WT)") +
+    ylab("-log10 adjusted p-value") +
+    ggtitle("KEAP1 MUT vs WT - Volcano plot") +
+    theme_classic(base_size = 13)
+  
+  print(p_volcano)
+  
+  ggsave(
+    "figures/12_DEG_Volcano_KEAP1_WT_MUT.png",
+    plot = p_volcano,
+    width = 7,
+    height = 6,
+    dpi = 300
+  )
+  
+  
+  # ============================================================
+  # 96. 해석용 robust protein-coding DEG 확인
+  # DEG 정의 자체는 그대로 유지
+  # ============================================================
+  
+  robust_deg <- sig_deg[
+    sig_deg$gene_type == "protein_coding" &
+      sig_deg$baseMean >= 50,
+  ]
+  
+  # 개수
+  nrow(robust_deg)
+  
+  table(robust_deg$direction)
+  
+  
+  # MUT에서 증가
+  robust_up <- robust_deg[
+    robust_deg$direction == "Up_in_MUT",
+  ]
+  
+  robust_up <- robust_up[
+    order(-robust_up$log2FoldChange),
+  ]
+  
+  head(
+    robust_up[
+      ,
+      c(
+        "gene_name",
+        "baseMean",
+        "log2FoldChange",
+        "padj"
+      )
+    ],
+    20
+  )
+  
+  # MUT에서 감소
+  robust_down <- robust_deg[
+    robust_deg$direction == "Down_in_MUT",
+  ]
+  
+  robust_down <- robust_down[
+    order(robust_down$log2FoldChange),
+  ]
+  
+  head(
+    robust_down[
+      ,
+      c(
+        "gene_name",
+        "baseMean",
+        "log2FoldChange",
+        "padj"
+      )
+    ],
+    20
+  )
+  
+  
+  # ============================================================
+  # 97. Top 40 robust DEG heatmap
+  # Up 20 + Down 20
+  # ============================================================
+  
+  library(pheatmap)
+  
+  # Top 20 Up / Top 20 Down
+  heatmap_genes <- c(
+    head(robust_up$gene_id, 20),
+    head(robust_down$gene_id, 20)
+  )
+  
+  # VST expression matrix
+  vst_mat <- assay(vsd_deg)
+  
+  # 선택한 gene만 추출
+  heatmap_mat <- vst_mat[
+    rownames(vst_mat) %in% heatmap_genes,
+    ,
+    drop = FALSE
+  ]
+  
+  # gene symbol 붙이기
+  heatmap_symbols <- res_deg_df$gene_name[
+    match(rownames(heatmap_mat), res_deg_df$gene_id)
+  ]
+  
+  rownames(heatmap_mat) <- heatmap_symbols
+  
+  # 각 gene별 Z-score
+  heatmap_z <- t(
+    scale(
+      t(heatmap_mat)
+    )
+  )
+  
+  # 샘플 annotation
+  heatmap_anno <- data.frame(
+    KEAP1 = deg_meta$KEAP1_status
+  )
+  
+  rownames(heatmap_anno) <- deg_meta$barcode
+  
+  # sample을 WT -> MUT 순서로 정렬
+  sample_order <- order(deg_meta$KEAP1_status)
+  
+  heatmap_z <- heatmap_z[, sample_order]
+  
+  heatmap_anno <- heatmap_anno[
+    sample_order,
+    ,
+    drop = FALSE
+  ]
+  
+  # 확인
+  dim(heatmap_z)
+  
+  
+  pheatmap(
+    heatmap_z,
+    cluster_rows = TRUE,
+    cluster_cols = FALSE,
+    show_colnames = FALSE,
+    annotation_col = heatmap_anno,
+    fontsize_row = 8,
+    main = "Top robust DEGs: KEAP1 MUT vs WT"
+  )
+  
+  
+  png(
+    "figures/13_DEG_Top40_heatmap_KEAP1_WT_MUT.png",
+    width = 2400,
+    height = 1500,
+    res = 250
+  )
+  
+  pheatmap(
+    heatmap_z,
+    cluster_rows = TRUE,
+    cluster_cols = FALSE,
+    show_colnames = FALSE,
+    annotation_col = heatmap_anno,
+    fontsize_row = 8,
+    main = "Top robust DEGs: KEAP1 MUT vs WT"
+  )
+  
+  dev.off()
+  
+  
+  requireNamespace("clusterProfiler", quietly = TRUE)
+  requireNamespace("org.Hs.eg.db", quietly = TRUE)
+  requireNamespace("enrichplot", quietly = TRUE)
+  
+  
+  
+  c(
+    clusterProfiler = requireNamespace("clusterProfiler", quietly = TRUE),
+    org.Hs.eg.db = requireNamespace("org.Hs.eg.db", quietly = TRUE),
+    enrichplot = requireNamespace("enrichplot", quietly = TRUE)
+  )
+  
+  
+  
+  # Bioconductor 설치 도구가 없으면 먼저 설치
+  if (!requireNamespace("BiocManager", quietly = TRUE)) {
+    install.packages("BiocManager")
+  }
+  
+  # GO/KEGG 분석 패키지 설치
+  BiocManager::install(
+    c(
+      "clusterProfiler",
+      "org.Hs.eg.db",
+      "enrichplot"
+    ),
+    ask = FALSE,
+    update = FALSE
+  )
+  
+  c(
+    clusterProfiler = requireNamespace("clusterProfiler", quietly = TRUE),
+    org.Hs.eg.db = requireNamespace("org.Hs.eg.db", quietly = TRUE),
+    enrichplot = requireNamespace("enrichplot", quietly = TRUE)
+  )
+  
+  
+  # ============================================================
+  # 98. GO enrichment용 Gene ID 매핑
+  # ============================================================
+  
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(enrichplot)
+  
+  # Ensembl 버전 번호 제거
+  # 예: ENSG00000125851.10 -> ENSG00000125851
+  res_deg_df$ensembl_clean <- sub(
+    "\\..*$",
+    "",
+    res_deg_df$gene_id
+  )
+  
+  sig_deg$ensembl_clean <- sub(
+    "\\..*$",
+    "",
+    sig_deg$gene_id
+  )
+  
+  # Ensembl -> Entrez ID 변환
+  res_deg_df$ENTREZID <- mapIds(
+    org.Hs.eg.db,
+    keys = res_deg_df$ensembl_clean,
+    keytype = "ENSEMBL",
+    column = "ENTREZID",
+    multiVals = "first"
+  )
+  
+  sig_deg$ENTREZID <- mapIds(
+    org.Hs.eg.db,
+    keys = sig_deg$ensembl_clean,
+    keytype = "ENSEMBL",
+    column = "ENTREZID",
+    multiVals = "first"
+  )
+  
+  # 전체 background
+  go_universe <- unique(
+    na.omit(res_deg_df$ENTREZID)
+  )
+  
+  # MUT에서 증가한 DEG
+  go_up <- unique(
+    na.omit(
+      sig_deg$ENTREZID[
+        sig_deg$direction == "Up_in_MUT"
+      ]
+    )
+  )
+  
+  # MUT에서 감소한 DEG
+  go_down <- unique(
+    na.omit(
+      sig_deg$ENTREZID[
+        sig_deg$direction == "Down_in_MUT"
+      ]
+    )
+  )
+  
+  # 매핑 결과 확인
+  c(
+    tested_genes = nrow(res_deg_df),
+    universe_mapped = length(go_universe),
+    up_DEG_original = sum(sig_deg$direction == "Up_in_MUT"),
+    up_DEG_mapped = length(go_up),
+    down_DEG_original = sum(sig_deg$direction == "Down_in_MUT"),
+    down_DEG_mapped = length(go_down)
+  )
+  
+  
+  # ============================================================
+  # 98. GO enrichment용 Gene ID 매핑
+  # ============================================================
+  
+  library(clusterProfiler)
+  library(org.Hs.eg.db)
+  library(enrichplot)
+  
+  # Ensembl 버전 번호 제거
+  # 예: ENSG00000125851.10 -> ENSG00000125851
+  res_deg_df$ensembl_clean <- sub(
+    "\\..*$",
+    "",
+    res_deg_df$gene_id
+  )
+  
+  sig_deg$ensembl_clean <- sub(
+    "\\..*$",
+    "",
+    sig_deg$gene_id
+  )
+  
+  # Ensembl -> Entrez ID 변환
+  res_deg_df$ENTREZID <- mapIds(
+    org.Hs.eg.db,
+    keys = res_deg_df$ensembl_clean,
+    keytype = "ENSEMBL",
+    column = "ENTREZID",
+    multiVals = "first"
+  )
+  
+  sig_deg$ENTREZID <- mapIds(
+    org.Hs.eg.db,
+    keys = sig_deg$ensembl_clean,
+    keytype = "ENSEMBL",
+    column = "ENTREZID",
+    multiVals = "first"
+  )
+  
+  # 전체 background
+  go_universe <- unique(
+    na.omit(res_deg_df$ENTREZID)
+  )
+  
+  # MUT에서 증가한 DEG
+  go_up <- unique(
+    na.omit(
+      sig_deg$ENTREZID[
+        sig_deg$direction == "Up_in_MUT"
+      ]
+    )
+  )
+  
+  # MUT에서 감소한 DEG
+  go_down <- unique(
+    na.omit(
+      sig_deg$ENTREZID[
+        sig_deg$direction == "Down_in_MUT"
+      ]
+    )
+  )
+  
+  # 매핑 결과 확인
+  c(
+    tested_genes = nrow(res_deg_df),
+    universe_mapped = length(go_universe),
+    up_DEG_original = sum(sig_deg$direction == "Up_in_MUT"),
+    up_DEG_mapped = length(go_up),
+    down_DEG_original = sum(sig_deg$direction == "Down_in_MUT"),
+    down_DEG_mapped = length(go_down)
+  )
+  
+  
+  # ============================================================
+  # 99. GO Biological Process enrichment
+  # Up / Down DEG separately
+  # ============================================================
+  
+  go_bp_up <- enrichGO(
+    gene          = go_up,
+    universe      = go_universe,
+    OrgDb         = org.Hs.eg.db,
+    keyType       = "ENTREZID",
+    ont           = "BP",
+    pAdjustMethod = "BH",
+    pvalueCutoff  = 0.05,
+    qvalueCutoff  = 0.05,
+    readable      = TRUE
+  )
+  
+  go_bp_down <- enrichGO(
+    gene          = go_down,
+    universe      = go_universe,
+    OrgDb         = org.Hs.eg.db,
+    keyType       = "ENTREZID",
+    ont           = "BP",
+    pAdjustMethod = "BH",
+    pvalueCutoff  = 0.05,
+    qvalueCutoff  = 0.05,
+    readable      = TRUE
+  )
+  
+  
+  # 유의한 GO BP term 개수
+  nrow(as.data.frame(go_bp_up))
+  nrow(as.data.frame(go_bp_down))
+  
+  
+  # MUT에서 증가한 DEG의 GO
+  head(
+    as.data.frame(go_bp_up)[
+      ,
+      c("ID", "Description", "GeneRatio", "BgRatio", "p.adjust", "Count")
+    ],
+    15
+  )
+  
+  # MUT에서 감소한 DEG의 GO
+  head(
+    as.data.frame(go_bp_down)[
+      ,
+      c("ID", "Description", "GeneRatio", "BgRatio", "p.adjust", "Count")
+    ],
+    15
+  )
+  
+  
+  # ============================================================
+  # 100. GO BP dotplot
+  # ============================================================
+  
+  library(enrichplot)
+  library(ggplot2)
+  
+  p_go_up <- dotplot(
+    go_bp_up,
+    showCategory = 15
+  ) +
+    ggtitle("GO Biological Process - Up in KEAP1 MUT")
+  
+  p_go_down <- dotplot(
+    go_bp_down,
+    showCategory = 15
+  ) +
+    ggtitle("GO Biological Process - Down in KEAP1 MUT")
+  
+  # Plots 창에서 보기
+  print(p_go_up)
+  
+  
+  # ============================================================
+  # 100. GO Biological Process dotplot
+  # KEAP1 MUT에서 증가한 DEG
+  # ============================================================
+  
+  library(enrichplot)
+  library(ggplot2)
+  
+  p_go_up <- dotplot(
+    go_bp_up,
+    showCategory = 15
+  ) +
+    ggtitle("GO Biological Process - Up in KEAP1 MUT")
+  
+  print(p_go_up)
+  
+  
+  # 그래픽 장치 초기화
+  graphics.off()
+  
+  library(enrichplot)
+  library(ggplot2)
+  
+  # Up GO dotplot 다시 생성
+  p_go_up <- dotplot(
+    go_bp_up,
+    showCategory = 15
+  ) +
+    ggtitle("GO Biological Process - Up in KEAP1 MUT")
+  
+  # Plots 창에 출력
+  print(p_go_up)
+  
+  
+  # ============================================================
+  # 101. GO Biological Process dotplot
+  # KEAP1 MUT에서 감소한 DEG
+  # ============================================================
+  
+  graphics.off()
+  
+  p_go_down <- dotplot(
+    go_bp_down,
+    showCategory = 15
+  ) +
+    ggtitle("GO Biological Process - Down in KEAP1 MUT")
+  
+  print(p_go_down)
+  
+  
+  ggsave(
+    "figures/15_GO_BP_Down_KEAP1_MUT.png",
+    plot = p_go_down,
+    width = 8,
+    height = 6,
+    dpi = 300
+  )
+  
+  
+  ggsave(
+    "figures/14_GO_BP_Up_KEAP1_MUT.png",
+    plot = p_go_up,
+    width = 8,
+    height = 6,
+    dpi = 300
+  )
+  
+  
+  # ============================================================
+  # 102. KEGG enrichment
+  # Up / Down DEG separately
+  # ============================================================
+  
+  kegg_up <- enrichKEGG(
+    gene          = go_up,
+    universe      = go_universe,
+    organism      = "hsa",
+    keyType       = "ncbi-geneid",
+    pAdjustMethod = "BH",
+    pvalueCutoff  = 0.05,
+    qvalueCutoff  = 0.05
+  )
+  
+  kegg_down <- enrichKEGG(
+    gene          = go_down,
+    universe      = go_universe,
+    organism      = "hsa",
+    keyType       = "ncbi-geneid",
+    pAdjustMethod = "BH",
+    pvalueCutoff  = 0.05,
+    qvalueCutoff  = 0.05
+  )
+  
+  # 유의 pathway 수
+  nrow(as.data.frame(kegg_up))
+  nrow(as.data.frame(kegg_down))
+  
+  # ============================================================
+  # 103. KEGG enrichment 결과 확인
+  # ============================================================
+  
+  # KEAP1 MUT에서 증가한 DEG
+  head(
+    as.data.frame(kegg_up)[
+      ,
+      c(
+        "ID",
+        "Description",
+        "GeneRatio",
+        "BgRatio",
+        "p.adjust",
+        "Count"
+      )
+    ],
+    15
+  )
+  
+  
+  # KEAP1 MUT에서 감소한 DEG
+  head(
+    as.data.frame(kegg_down)[
+      ,
+      c(
+        "ID",
+        "Description",
+        "GeneRatio",
+        "BgRatio",
+        "p.adjust",
+        "Count"
+      )
+    ],
+    15
+  )
+  
+  
+  # ============================================================
+  # 104. KEGG enrichment dotplot
+  # ============================================================
+  
+  library(enrichplot)
+  library(ggplot2)
+  
+  graphics.off()
+  
+  # MUT에서 증가
+  p_kegg_up <- dotplot(
+    kegg_up,
+    showCategory = 15
+  ) +
+    ggtitle("KEGG Pathways - Up in KEAP1 MUT")
+  
+  print(p_kegg_up)
+  
+  p_kegg_down <- dotplot(
+    kegg_down,
+    showCategory = 8
+  ) +
+    ggtitle("KEGG Pathways - Down in KEAP1 MUT")
+  
+  print(p_kegg_down)
+  
+  ggsave(
+    "figures/16_KEGG_Up_KEAP1_MUT.png",
+    plot = p_kegg_up,
+    width = 8,
+    height = 6,
+    dpi = 300
+  )
+  
+  ggsave(
+    "figures/17_KEGG_Down_KEAP1_MUT.png",
+    plot = p_kegg_down,
+    width = 8,
+    height = 5,
+    dpi = 300
+  )
+  
+  
+  # ============================================================
+  # 105. GSEA용 ranked gene list 생성
+  # 전체 유전자 사용
+  # ============================================================
+  
+  gsea_df <- res_deg_df[
+    !is.na(res_deg_df$stat) &
+      !is.na(res_deg_df$ENTREZID),
+    c(
+      "gene_name",
+      "ENTREZID",
+      "log2FoldChange",
+      "stat",
+      "padj"
+    )
+  ]
+  
+  # 같은 Entrez ID가 여러 번 매핑된 경우
+  # |stat|가 가장 큰 gene 하나만 유지
+  gsea_df <- gsea_df[
+    order(-abs(gsea_df$stat)),
+  ]
+  
+  gsea_df <- gsea_df[
+    !duplicated(gsea_df$ENTREZID),
+  ]
+  
+  # GSEA용 named vector 생성
+  gene_rank <- gsea_df$stat
+  
+  names(gene_rank) <- gsea_df$ENTREZID
+  
+  # GSEA에서는 반드시 큰 값 -> 작은 값 순으로 정렬
+  gene_rank <- sort(
+    gene_rank,
+    decreasing = TRUE
+  )
+  
+  # 확인
+  length(gene_rank)
+  
+  head(gene_rank, 10)
+  
+  tail(gene_rank, 10)
+  
+  
+  # ============================================================
+  # 106. Hallmark gene set 준비
+  # ============================================================
+  
+  library(msigdbr)
+  
+  hallmark_df <- msigdbr(
+    species = "Homo sapiens",
+    collection = "H"
+  )
+  
+  # 구조 확인
+  dim(hallmark_df)
+  
+  colnames(hallmark_df)
+  
+  # Hallmark pathway 개수
+  length(unique(hallmark_df$gs_name))
+  
+  head(hallmark_df)
+  
+  
+  dim(hallmark_df)
+  
+  colnames(hallmark_df)
+  
+  length(unique(hallmark_df$gs_name))
+  
+  
+  
+  # ============================================================
+  # 107. Hallmark GSEA
+  # ============================================================
+  
+  # GSEA용 Hallmark TERM2GENE 만들기
+  hallmark_t2g <- hallmark_df[
+    !is.na(hallmark_df$ncbi_gene),
+    c("gs_name", "ncbi_gene")
+  ]
+  
+  # Entrez ID를 문자형으로 통일
+  hallmark_t2g$ncbi_gene <- as.character(
+    hallmark_t2g$ncbi_gene
+  )
+  
+  # 중복 제거
+  hallmark_t2g <- unique(hallmark_t2g)
+  
+  # gene_rank의 이름도 문자형 확인
+  names(gene_rank) <- as.character(names(gene_rank))
+  
+  # Hallmark GSEA 실행
+  gsea_hallmark <- GSEA(
+    geneList      = gene_rank,
+    TERM2GENE     = hallmark_t2g,
+    pvalueCutoff  = 1,
+    pAdjustMethod = "BH",
+    minGSSize     = 10,
+    maxGSSize     = 500,
+    verbose       = FALSE,
+    seed          = TRUE
+  )
+  
+  # ============================================================
+  # 107-1. Hallmark GSEA 재실행
+  # 매우 작은 p-value까지 정확하게 계산
+  # ============================================================
+  
+  gsea_hallmark <- GSEA(
+    geneList      = gene_rank,
+    TERM2GENE     = hallmark_t2g,
+    pvalueCutoff  = 1,
+    pAdjustMethod = "BH",
+    minGSSize     = 10,
+    maxGSSize     = 500,
+    eps           = 0,
+    verbose       = FALSE,
+    seed          = TRUE
+  )
+  
+  
+  gsea_hallmark_df <- as.data.frame(gsea_hallmark)
+  
+  # 분석된 pathway 수
+  nrow(gsea_hallmark_df)
+  
+  # FDR < 0.05 pathway 수
+  sum(
+    gsea_hallmark_df$p.adjust < 0.05,
+    na.rm = TRUE
+  )
+  
+  # 결과 컬럼
+  colnames(gsea_hallmark_df)
+  
+  
+  # MUT에서 가장 강하게 증가한 pathway
+  head(
+    gsea_hallmark_df[
+      order(-gsea_hallmark_df$NES),
+      c("ID", "NES", "p.adjust", "core_enrichment")
+    ],
+    10
+  )
+  
+  # MUT에서 가장 강하게 감소한 pathway
+  head(
+    gsea_hallmark_df[
+      order(gsea_hallmark_df$NES),
+      c("ID", "NES", "p.adjust", "core_enrichment")
+    ],
+    10
+  )
+  
+  
+  # ============================================================
+  # 108. Hallmark GSEA Top pathways NES plot
+  # ============================================================
+  
+  library(ggplot2)
+  
+  # FDR < 0.05만 선택
+  gsea_sig <- gsea_hallmark_df[
+    !is.na(gsea_hallmark_df$p.adjust) &
+      gsea_hallmark_df$p.adjust < 0.05,
+  ]
+  
+  # MUT 쪽 enrichment: NES > 0
+  gsea_pos <- gsea_sig[
+    gsea_sig$NES > 0,
+  ]
+  
+  gsea_pos <- gsea_pos[
+    order(-gsea_pos$NES),
+  ]
+  
+  gsea_pos_top <- head(gsea_pos, 10)
+  
+  # WT 쪽 enrichment: NES < 0
+  gsea_neg <- gsea_sig[
+    gsea_sig$NES < 0,
+  ]
+  
+  gsea_neg <- gsea_neg[
+    order(gsea_neg$NES),
+  ]
+  
+  gsea_neg_top <- head(gsea_neg, 10)
+  
+  # 두 그룹 합치기
+  gsea_top20 <- rbind(
+    gsea_neg_top,
+    gsea_pos_top
+  )
+  
+  # pathway 이름 보기 좋게 정리
+  gsea_top20$Pathway <- gsub(
+    "^HALLMARK_",
+    "",
+    gsea_top20$ID
+  )
+  
+  gsea_top20$Pathway <- gsub(
+    "_",
+    " ",
+    gsea_top20$Pathway
+  )
+  
+  # 방향 표시
+  gsea_top20$Direction <- ifelse(
+    gsea_top20$NES > 0,
+    "Enriched in MUT",
+    "Enriched in WT"
+  )
+  
+  # NES 순서대로 factor 설정
+  gsea_top20$Pathway <- factor(
+    gsea_top20$Pathway,
+    levels = gsea_top20$Pathway[
+      order(gsea_top20$NES)
+    ]
+  )
+  
+  # 확인
+  gsea_top20[
+    ,
+    c("Pathway", "NES", "p.adjust", "Direction")
+  ]
+  
+  
+  
+  # ============================================================
+  # 109. GSEA NES plot
+  # ============================================================
+  
+  p_gsea_nes <- ggplot(
+    gsea_top20,
+    aes(
+      x = NES,
+      y = Pathway,
+      fill = Direction
+    )
+  ) +
+    geom_col(width = 0.75) +
+    geom_vline(
+      xintercept = 0,
+      linetype = "dashed"
+    ) +
+    xlab("Normalized Enrichment Score (NES)") +
+    ylab(NULL) +
+    ggtitle(
+      "Hallmark GSEA: KEAP1 MUT vs WT"
+    ) +
+    theme_classic(base_size = 12)
+  
+  print(p_gsea_nes)
+  
+  
+  
+  # ============================================================
+  # 110. 대표 GSEA enrichment curve
+  # ROS pathway
+  # ============================================================
+  
+  library(enrichplot)
+  
+  graphics.off()
+  
+  p_gsea_ros <- gseaplot2(
+    gsea_hallmark,
+    geneSetID = "HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY",
+    title = "HALLMARK_REACTIVE_OXYGEN_SPECIES_PATHWAY"
+  )
+  
+  print(p_gsea_ros)
+  
+  
+  ggsave(
+    "figures/19_GSEA_ROS_KEAP1_MUT_WT.png",
+    plot = p_gsea_ros,
+    width = 8,
+    height = 6,
+    dpi = 300
+  )
+  
+  
+  # ============================================================
+  # 111. Oxidative phosphorylation GSEA curve
+  # ============================================================
+  
+  graphics.off()
+  
+  p_gsea_oxphos <- gseaplot2(
+    gsea_hallmark,
+    geneSetID = "HALLMARK_OXIDATIVE_PHOSPHORYLATION",
+    title = "HALLMARK_OXIDATIVE_PHOSPHORYLATION"
+  )
+  
+  print(p_gsea_oxphos)
+  
+  
+  ggsave(
+    "figures/20_GSEA_OXPHOS_KEAP1_MUT_WT.png",
+    plot = p_gsea_oxphos,
+    width = 8,
+    height = 6,
+    dpi = 300
+  )
+    
+    # ============================================================
+    # 112. DEG 결과 저장
+    # ============================================================
+    
+    # 전체 DEG 결과
+    write.csv(
+      res_deg_df,
+      "results/DEG_all_KEAP1_MUT_vs_WT.csv",
+      row.names = FALSE
+    )
+    
+    # significant DEG
+    write.csv(
+      sig_deg,
+      "results/DEG_significant_KEAP1_MUT_vs_WT.csv",
+      row.names = FALSE
+    )
+    
+    # robust protein-coding DEG
+    write.csv(
+      robust_deg,
+      "results/DEG_robust_protein_coding_KEAP1_MUT_vs_WT.csv",
+      row.names = FALSE
+    )
+    
+    
+    # ============================================================
+    # 113. Pathway 결과 저장
+    # ============================================================
+    
+    write.csv(
+      as.data.frame(go_bp_up),
+      "results/GO_BP_Up_KEAP1_MUT.csv",
+      row.names = FALSE
+    )
+    
+    write.csv(
+      as.data.frame(go_bp_down),
+      "results/GO_BP_Down_KEAP1_MUT.csv",
+      row.names = FALSE
+    )
+    
+    write.csv(
+      as.data.frame(kegg_up),
+      "results/KEGG_Up_KEAP1_MUT.csv",
+      row.names = FALSE
+    )
+    
+    write.csv(
+      as.data.frame(kegg_down),
+      "results/KEGG_Down_KEAP1_MUT.csv",
+      row.names = FALSE
+    )
+    
+    write.csv(
+      gsea_hallmark_df,
+      "results/GSEA_Hallmark_KEAP1_MUT_vs_WT.csv",
+      row.names = FALSE
+    )
+  
+  
+  list.files("results")
+  
+  
+  list.files("figures")
+  
+  
+  # ============================================================
+  # 114. Hallmark GSEA NES plot 저장
+  # ============================================================
+  
+  ggsave(
+    "figures/18_GSEA_Hallmark_NES_KEAP1_MUT_WT.png",
+    plot = p_gsea_nes,
+    width = 9,
+    height = 7,
+    dpi = 300
+  )
+  
+  file.exists(
+    "figures/18_GSEA_Hallmark_NES_KEAP1_MUT_WT.png"
+  )
+  
+  
+  # ============================================================
+  # 115. Clinical confounder 구조 확인
+  # ============================================================
+  
+  # Age
+  summary(deg_meta$age_at_diagnosis)
+  
+  # Sex
+  table(
+    deg_meta$KEAP1_status,
+    deg_meta$sex_at_birth,
+    useNA = "ifany"
+  )
+  
+  # Pathologic stage
+  table(
+    deg_meta$KEAP1_status,
+    deg_meta$ajcc_pathologic_stage,
+    useNA = "ifany"
+  )
+  
+  # Smoking status
+  table(
+    deg_meta$KEAP1_status,
+    deg_meta$tobacco_smoking_status,
+    useNA = "ifany"
+  )
+  
+  
+  # ============================================================
+  # 116. Clinical confounder statistical tests
+  # ============================================================
+  
+  # ------------------------------------------------------------
+  # 1. Age
+  # ------------------------------------------------------------
+  
+  deg_meta$age_years <- deg_meta$age_at_diagnosis / 365.25
+  
+  aggregate(
+    age_years ~ KEAP1_status,
+    data = deg_meta,
+    FUN = function(x) c(
+      n = sum(!is.na(x)),
+      mean = mean(x, na.rm = TRUE),
+      median = median(x, na.rm = TRUE)
+    )
+  )
+  
+  wilcox.test(
+    age_years ~ KEAP1_status,
+    data = deg_meta
+  )
+  
+  
+  # ------------------------------------------------------------
+  # 2. Sex
+  # ------------------------------------------------------------
+  
+  sex_tab <- table(
+    deg_meta$KEAP1_status,
+    deg_meta$sex_at_birth
+  )
+  
+  sex_tab
+  
+  chisq.test(sex_tab)
+  
+  
+  # ------------------------------------------------------------
+  # 3. Pathologic stage
+  # ------------------------------------------------------------
+  
+  stage_raw <- as.character(
+    deg_meta$ajcc_pathologic_stage
+  )
+  
+  deg_meta$stage_group <- ifelse(
+    grepl("^Stage IV", stage_raw), "IV",
+    ifelse(
+      grepl("^Stage III", stage_raw), "III",
+      ifelse(
+        grepl("^Stage II", stage_raw), "II",
+        ifelse(
+          grepl("^Stage I", stage_raw), "I",
+          NA
+        )
+      )
+    )
+  )
+  
+  stage_tab <- table(
+    deg_meta$KEAP1_status,
+    deg_meta$stage_group
+  )
+  
+  stage_tab
+  
+  chisq.test(stage_tab)
+  
+  
+  # ------------------------------------------------------------
+  # 4. Smoking
+  # ------------------------------------------------------------
+  
+  smoke_raw <- as.character(
+    deg_meta$tobacco_smoking_status
+  )
+  
+  deg_meta$smoking_group <- ifelse(
+    smoke_raw == "Lifelong Non-Smoker",
+    "Never",
+    ifelse(
+      smoke_raw %in% c(
+        "Current Smoker",
+        "Current Reformed Smoker for < or = 15 yrs",
+        "Current Reformed Smoker for > 15 yrs",
+        "Current Reformed Smoker, Duration Not Specified"
+      ),
+      "Ever",
+      NA
+    )
+  )
+  
+  smoking_tab <- table(
+    deg_meta$KEAP1_status,
+    deg_meta$smoking_group
+  )
+  
+  smoking_tab
+  
+  chisq.test(smoking_tab)
+  
+  
+  # ============================================================
+  # 117. Stage 정확한 검정 + adjusted analysis cohort 확인
+  # ============================================================
+  
+  # Stage: 작은 셀이 있으므로 Fisher exact test
+  fisher.test(
+    stage_tab,
+    simulate.p.value = TRUE,
+    B = 10000
+  )
+  
+  # adjusted DEG에 사용할 변수 정리
+  deg_meta$sex_group <- factor(
+    deg_meta$sex_at_birth
+  )
+  
+  deg_meta$stage_group <- factor(
+    deg_meta$stage_group,
+    levels = c("I", "II", "III", "IV")
+  )
+  
+  deg_meta$smoking_group <- factor(
+    deg_meta$smoking_group,
+    levels = c("Never", "Ever")
+  )
+  
+  # Sex + Stage + Smoking이 모두 있는 환자만 선택
+  adjust_keep <- complete.cases(
+    deg_meta[
+      ,
+      c(
+        "KEAP1_status",
+        "sex_group",
+        "stage_group",
+        "smoking_group"
+      )
+    ]
+  )
+  
+  # 최종 보정 분석 환자 수
+  sum(adjust_keep)
+  
+  # WT / MUT 수
+  table(
+    deg_meta$KEAP1_status[adjust_keep]
+  )
+  
+  # 각 변수 분포
+  table(
+    deg_meta$sex_group[adjust_keep],
+    deg_meta$KEAP1_status[adjust_keep]
+  )
+  
+  table(
+    deg_meta$stage_group[adjust_keep],
+    deg_meta$KEAP1_status[adjust_keep]
+  )
+  
+  table(
+    deg_meta$smoking_group[adjust_keep],
+    deg_meta$KEAP1_status[adjust_keep]
+  )
+  
+  
+  # ============================================================
+  # 118. Adjusted DESeq2 cohort 준비
+  # Covariates: Sex + Stage + Smoking
+  # ============================================================
+  
+  # complete-case 환자만 count matrix에서 선택
+  adj_counts <- deg_counts_filt[, adjust_keep]
+  
+  # metadata도 같은 환자만 선택
+  adj_meta <- deg_meta[adjust_keep, ]
+  
+  # row name을 barcode로 설정
+  rownames(adj_meta) <- adj_meta$barcode
+  
+  # factor와 reference level 명확히 설정
+  adj_meta$KEAP1_status <- factor(
+    adj_meta$KEAP1_status,
+    levels = c("WT", "MUT")
+  )
+  
+  adj_meta$sex_group <- factor(
+    adj_meta$sex_group,
+    levels = c("female", "male")
+  )
+  
+  adj_meta$stage_group <- factor(
+    adj_meta$stage_group,
+    levels = c("I", "II", "III", "IV")
+  )
+  
+  adj_meta$smoking_group <- factor(
+    adj_meta$smoking_group,
+    levels = c("Never", "Ever")
+  )
+  
+  # count와 metadata 순서 확인
+  all(
+    colnames(adj_counts) == rownames(adj_meta)
+  )
+  
+  # 크기 확인
+  dim(adj_counts)
+  
+  table(adj_meta$KEAP1_status)
+  
+  
+  
+  # design matrix 확인
+  design_mat <- model.matrix(
+    ~ sex_group + stage_group + smoking_group + KEAP1_status,
+    data = adj_meta
+  )
+  
+  # rank와 column 수가 같아야 함
+  c(
+    rank = qr(design_mat)$rank,
+    columns = ncol(design_mat)
+  )
+  
+  colnames(design_mat)
+  
+  
+  
+  # ============================================================
+  # 119. Covariate-adjusted DESeq2
+  # Sex + Stage + Smoking 보정
+  # ============================================================
+  
+  library(DESeq2)
+  
+  # DESeq2에 필요한 metadata만 구성
+  adj_coldata <- data.frame(
+    sex_group     = adj_meta$sex_group,
+    stage_group   = adj_meta$stage_group,
+    smoking_group = adj_meta$smoking_group,
+    KEAP1_status  = adj_meta$KEAP1_status,
+    row.names     = adj_meta$barcode
+  )
+  
+  # 순서 확인
+  all(
+    colnames(adj_counts) == rownames(adj_coldata)
+  )
+  
+  # DESeq2 객체 생성
+  dds_adj <- DESeqDataSetFromMatrix(
+    countData = round(adj_counts),
+    colData   = adj_coldata,
+    design    = ~ sex_group +
+      stage_group +
+      smoking_group +
+      KEAP1_status
+  )
+  
+  # DESeq2 실행
+  dds_adj <- DESeq(dds_adj)
+  
+  # ============================================================
+  # 120. Adjusted KEAP1 MUT vs WT 결과
+  # ============================================================
+  
+  res_adj <- results(
+    dds_adj,
+    contrast = c(
+      "KEAP1_status",
+      "MUT",
+      "WT"
+    ),
+    alpha = 0.05
+  )
+  
+  summary(res_adj)
+  
+  res_adj_df <- as.data.frame(res_adj)
+  
+  # FDR < 0.05
+  sum(
+    res_adj_df$padj < 0.05,
+    na.rm = TRUE
+  )
+  
+  # FDR < 0.05 + |log2FC| >= 1
+  sum(
+    res_adj_df$padj < 0.05 &
+      abs(res_adj_df$log2FoldChange) >= 1,
+    na.rm = TRUE
+  )
+  
+  
+  # ============================================================
+  # 121. Unadjusted vs Adjusted DEG robustness 비교
+  # ============================================================
+  
+  # adjusted 결과에 gene ID 추가
+  res_adj_df$gene_id <- rownames(res_adj_df)
+  
+  # 같은 gene끼리 매칭
+  adj_idx <- match(
+    res_deg_df$gene_id,
+    res_adj_df$gene_id
+  )
+  
+  deg_compare <- data.frame(
+    gene_id = res_deg_df$gene_id,
+    gene_name = res_deg_df$gene_name,
+    
+    unadj_log2FC = res_deg_df$log2FoldChange,
+    unadj_padj   = res_deg_df$padj,
+    
+    adj_log2FC = res_adj_df$log2FoldChange[adj_idx],
+    adj_padj   = res_adj_df$padj[adj_idx]
+  )
+  
+  # 둘 다 log2FC가 존재하는 gene
+  compare_ok <- complete.cases(
+    deg_compare[, c("unadj_log2FC", "adj_log2FC")]
+  )
+  
+  # 전체 gene의 effect-size correlation
+  cor(
+    deg_compare$unadj_log2FC[compare_ok],
+    deg_compare$adj_log2FC[compare_ok],
+    method = "spearman"
+  )
+  
+  cor(
+    deg_compare$unadj_log2FC[compare_ok],
+    deg_compare$adj_log2FC[compare_ok],
+    method = "pearson"
+  )
+  
+  
+  # 기존 stringent DEG
+  deg_compare$unadj_sig <- (
+    !is.na(deg_compare$unadj_padj) &
+      deg_compare$unadj_padj < 0.05 &
+      abs(deg_compare$unadj_log2FC) >= 1
+  )
+  
+  # adjusted stringent DEG
+  deg_compare$adj_sig <- (
+    !is.na(deg_compare$adj_padj) &
+      deg_compare$adj_padj < 0.05 &
+      abs(deg_compare$adj_log2FC) >= 1
+  )
+  
+  # 개수
+  c(
+    unadjusted = sum(deg_compare$unadj_sig),
+    adjusted   = sum(deg_compare$adj_sig),
+    overlap    = sum(
+      deg_compare$unadj_sig &
+        deg_compare$adj_sig
+    )
+  )
+  
+  # overlap gene 중 방향까지 같은지
+  overlap_idx <- (
+    deg_compare$unadj_sig &
+      deg_compare$adj_sig
+  )
+  
+  same_direction <- sign(
+    deg_compare$unadj_log2FC[overlap_idx]
+  ) == sign(
+    deg_compare$adj_log2FC[overlap_idx]
+  )
+  
+  c(
+    overlap_genes = sum(overlap_idx),
+    same_direction = sum(same_direction),
+    concordance_percent =
+      mean(same_direction) * 100
+  )
+  
+  
+  # ============================================================
+  # 122. Adjusted Hallmark GSEA 준비
+  # ============================================================
+  
+  # adjusted 결과에 기존 Entrez ID 매칭
+  adj_match <- match(
+    res_adj_df$gene_id,
+    res_deg_df$gene_id
+  )
+  
+  res_adj_df$ENTREZID <- res_deg_df$ENTREZID[adj_match]
+  
+  # GSEA에 사용할 gene
+  gsea_adj_df <- res_adj_df[
+    !is.na(res_adj_df$stat) &
+      !is.na(res_adj_df$ENTREZID),
+    c(
+      "gene_id",
+      "ENTREZID",
+      "log2FoldChange",
+      "stat",
+      "padj"
+    )
+  ]
+  
+  # 같은 Entrez ID가 여러 개면 |stat|가 가장 큰 것 유지
+  gsea_adj_df <- gsea_adj_df[
+    order(-abs(gsea_adj_df$stat)),
+  ]
+  
+  gsea_adj_df <- gsea_adj_df[
+    !duplicated(gsea_adj_df$ENTREZID),
+  ]
+  
+  # ranked list
+  gene_rank_adj <- gsea_adj_df$stat
+  names(gene_rank_adj) <- as.character(gsea_adj_df$ENTREZID)
+  
+  gene_rank_adj <- sort(
+    gene_rank_adj,
+    decreasing = TRUE
+  )
+  
+  length(gene_rank_adj)
+  
+  
+  # ============================================================
+  # 123. Covariate-adjusted Hallmark GSEA
+  # ============================================================
+  
+  gsea_hallmark_adj <- GSEA(
+    geneList      = gene_rank_adj,
+    TERM2GENE     = hallmark_t2g,
+    pvalueCutoff  = 1,
+    pAdjustMethod = "BH",
+    minGSSize     = 10,
+    maxGSSize     = 500,
+    eps           = 0,
+    verbose       = FALSE,
+    seed          = TRUE
+  )
+  
+  gsea_hallmark_adj_df <- as.data.frame(
+    gsea_hallmark_adj
+  )
+  
+  # 분석 pathway 수
+  nrow(gsea_hallmark_adj_df)
+  
+  # FDR < 0.05
+  sum(
+    gsea_hallmark_adj_df$p.adjust < 0.05,
+    na.rm = TRUE
+  )
+  
+  
+  
+  # Adjusted: MUT 쪽 Top 10
+  head(
+    gsea_hallmark_adj_df[
+      order(-gsea_hallmark_adj_df$NES),
+      c("ID", "NES", "p.adjust")
+    ],
+    10
+  )
+  
+  # Adjusted: WT 쪽 Top 10
+  head(
+    gsea_hallmark_adj_df[
+      order(gsea_hallmark_adj_df$NES),
+      c("ID", "NES", "p.adjust")
+    ],
+    10
+  )
+  
+  
+  # ============================================================
+  # 124. Unadjusted vs Adjusted Hallmark GSEA 비교
+  # ============================================================
+  
+  gsea_compare <- merge(
+    gsea_hallmark_df[
+      ,
+      c("ID", "NES", "p.adjust")
+    ],
+    gsea_hallmark_adj_df[
+      ,
+      c("ID", "NES", "p.adjust")
+    ],
+    by = "ID",
+    suffixes = c("_unadj", "_adj")
+  )
+  
+  # pathway 수
+  nrow(gsea_compare)
+  
+  # NES correlation
+  cor(
+    gsea_compare$NES_unadj,
+    gsea_compare$NES_adj,
+    method = "spearman"
+  )
+  
+  cor(
+    gsea_compare$NES_unadj,
+    gsea_compare$NES_adj,
+    method = "pearson"
+  )
+  
+  # 방향 일치율
+  same_direction_gsea <- sign(
+    gsea_compare$NES_unadj
+  ) == sign(
+    gsea_compare$NES_adj
+  )
+  
+  c(
+    pathways = nrow(gsea_compare),
+    same_direction = sum(same_direction_gsea),
+    concordance_percent =
+      mean(same_direction_gsea) * 100
+  )
+  
+  
+  # ============================================================
+  # 125. 보정 전후 방향이 달라진 Hallmark pathway 확인
+  # ============================================================
+  
+  gsea_compare[
+    sign(gsea_compare$NES_unadj) !=
+      sign(gsea_compare$NES_adj),
+    c(
+      "ID",
+      "NES_unadj",
+      "p.adjust_unadj",
+      "NES_adj",
+      "p.adjust_adj"
+    )
+  ]
+  
+  
+  # ============================================================
+  # 126. Adjusted sensitivity analysis 결과 저장
+  # ============================================================
+  
+  # Adjusted DEG 전체
+  write.csv(
+    res_adj_df,
+    "results/DEG_adjusted_KEAP1_MUT_vs_WT.csv",
+    row.names = FALSE
+  )
+  
+  # Unadjusted vs adjusted DEG 비교
+  write.csv(
+    deg_compare,
+    "results/DEG_unadjusted_vs_adjusted_comparison.csv",
+    row.names = FALSE
+  )
+  
+  # Adjusted Hallmark GSEA
+  write.csv(
+    gsea_hallmark_adj_df,
+    "results/GSEA_Hallmark_adjusted_KEAP1_MUT_vs_WT.csv",
+    row.names = FALSE
+  )
+  
+  # Hallmark GSEA 보정 전후 비교
+  write.csv(
+    gsea_compare,
+    "results/GSEA_Hallmark_unadjusted_vs_adjusted.csv",
+    row.names = FALSE
+  )
+  
+  # 확인
+  list.files("results")
+  
+  
+  x <- readLines("02_tcga_reproduction.R")
+  
+  cat(
+    sprintf(
+      "%4d: %s\n",
+      2865:2885,
+      x[2865:2885]
+    ),
+    sep = ""
+  )
+  
+  source("~/Documents/tcga-luad-keap1/02_tcga_reproduction.R")
+  
+  
+  x <- readLines("02_tcga_reproduction.R")
+  
+  cat(
+    sprintf(
+      "%4d: %s\n",
+      5025:5045,
+      x[5025:5045]
+    ),
+    sep = ""
+  )
+  
+  cat(
+    sprintf(
+      "%4d: %s\n",
+      5015:5030,
+      x[5015:5030]
+    ),
+    sep = ""
+  )
+  parse(file = "~/Documents/tcga-luad-keap1/02_tcga_reproduction.R")
+  
+  x <- readLines("~/Documents/tcga-luad-keap1/02_tcga_reproduction.R")
+  
+  cat(
+    sprintf(
+      "%4d: %s\n",
+      5075:5095,
+      x[5075:5095]
+    ),
+    sep = ""
+  )
+  
+  parse(file = "~/Documents/tcga-luad-keap1/02_tcga_reproduction.R")
+  
